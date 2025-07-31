@@ -2,7 +2,7 @@ import Foundation
 import RealmSwift
 
 final class ShoppingItemLocalModel: Object, Identifiable {
-    @Persisted var id: String = UUID().uuidString
+    @Persisted var id: String
     @Persisted var name: String
     @Persisted var quantity: Int64
     @Persisted var note: String?

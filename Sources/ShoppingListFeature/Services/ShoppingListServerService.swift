@@ -42,10 +42,10 @@ public class ShoppingListServerService {
 
     // MARK: DELETE
     func deleteItem(
-        _ item: ShoppingItemServerModel
+        _ itemId: String
     ) async throws {
         try await apiClient.request(
-            endpoint: .deleteShoppingItem(id: item.id),
+            endpoint: .deleteShoppingItem(id: itemId),
             responseType: EmptyResponse.self
         )
     }

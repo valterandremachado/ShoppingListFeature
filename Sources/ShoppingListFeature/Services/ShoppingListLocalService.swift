@@ -45,12 +45,17 @@ public class ShoppingListLocalService {
 
     // MARK: UPDATE
     func updateItem(
-        _ item: ShoppingItemLocalModel,
-        with newName: String,
+        with id: String,
+        newName: String,
         newQuantity: Int64,
         newNote: String? = nil
     ) throws {
 
+        guard let item = realm.object(
+            ofType: ShoppingItemLocalModel.self,
+            forPrimaryKey: id
+        ) else { return }
+        
         // Write to Realm
         try realm.write {
             item.name = newName

@@ -269,7 +269,7 @@ public struct ShoppingListView: View {
         }
         let itemNote = !editNote.isEmpty ? editNote : item.note
         viewModel.updateItem(
-            item,
+            id: item.id,
             newName: trimmedName,
             newQuantity: quantityValue,
             newNote: itemNote

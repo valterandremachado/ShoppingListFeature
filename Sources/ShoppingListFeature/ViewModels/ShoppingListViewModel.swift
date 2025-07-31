@@ -66,7 +66,7 @@ final class ShoppingListViewModel: ObservableObject {
         note: String? = nil
     ) {
         do {
-            let newItem = try localService.createItem(
+            try localService.createItem(
                 name: name, 
                 quantity: quantity, 
                 note: note
@@ -80,15 +80,15 @@ final class ShoppingListViewModel: ObservableObject {
 
     // MARK: UPDATE
     func updateItem(
-        _ item: ShoppingItemLocalModel, 
-        newName: String, 
+        id: String,
+        newName: String,
         newQuantity: Int64, 
         newNote: String? = nil
     ) {
         do {
             try localService.updateItem(
-                item, 
-                with: newName, 
+                with: id,
+                newName: newName,
                 newQuantity: newQuantity, 
                 newNote: newNote
             )
