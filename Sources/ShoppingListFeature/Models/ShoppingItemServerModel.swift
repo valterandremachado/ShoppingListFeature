@@ -6,6 +6,6 @@ struct ShoppingItemServerModel: Codable, Identifiable {
     var quantity: Int64
     var note: String?
     var isPurchased: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: String
+    var updatedAt: String
 }
