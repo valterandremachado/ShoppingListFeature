@@ -1,29 +1,31 @@
 import Foundation
 
-final class HTTPClient {
+final class HTTPClient: @unchecked Sendable {
     static let shared = HTTPClient()
     private init() {}
-
-    func performRequest<T: Codable>(endpoint: String, method: String, body: T? = nil) async throws -> T {
-        var request = URLRequest(url: baseURL.appendingPathComponent(endpoint))
-        request.httpMethod = method
-
-        if let body = body {
-            request.httpBody = try JSONEncoder().encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
+    
+    func request<T: Decodable>(
+        endpoint: APIEndpoint,
+        responseType: T.Type
+    ) async throws -> T {
+        let (data, response) = try await URLSession.shared.data(for: endpoint.request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw APIError.unknownError("Invalid response")
         }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(errorMessage)
+        
+        // EmptyResponse and data is empty
+        if T.self == EmptyResponse.self, data.isEmpty {
+            return EmptyResponse() as! T
         }
-
-        return try JSONDecoder().decode(T.self, from: data)
+        
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            print("Decoding failed with error: \(error)")
+            throw APIError.decodingError(error.localizedDescription)
+        }
     }
 }
+
+// MARK: - EmptyResponse
+struct EmptyResponse: Decodable {}

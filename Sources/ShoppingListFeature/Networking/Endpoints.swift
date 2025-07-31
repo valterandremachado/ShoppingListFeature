@@ -1,48 +1,66 @@
 import Foundation
 
+// MARK: - APIPath
+enum APIPath: String {
+    case shoppingItems = "/api/shopping-items"
+
+    func url(forBase base: APIBaseURL) -> URL {
+        return base.baseURL.appendingPathComponent(self.rawValue)
+    }
+
+    func url(withID id: String, forBase base: APIBaseURL) -> URL {
+        return base.baseURL.appendingPathComponent("\(self.rawValue)/\(id)")
+    }
+}
+
+// MARK: - APIBaseURL
+enum APIBaseURL {
+    case wiremock
+
+    var baseURL: URL {
+        switch self {
+        case .wiremock:
+            return URL(string: "https://55kgy.wiremockapi.cloud")!
+        }
+    }
+}
+
+// MARK: - APIEndpoint
 enum APIEndpoint {
     case getShoppingItems
-    case createShoppingItem
-    case updateShoppingItem(String)
-    case deleteShoppingItem(String)
-
-    // BaseURL
-    static let apiBaseURL = "https://55kgy.wiremockapi.cloud"
-    
-    // Path prefix
-    static let apiPathPrefix = "/api/shopping-items"
-
-    var path: String {
-        switch self {
-        case .getShoppingItems, .createShoppingItem:
-            return Self.apiPathPrefix
-        case .updateShoppingItem(let id), .deleteShoppingItem(let id):
-            return "\(Self.apiPathPrefix)/\(id)"
-        }
-    }
-
-    var method: String {
-        switch self {
-        case .getShoppingItems:
-            return "GET"
-        case .createShoppingItem:
-            return "POST"
-        case .updateShoppingItem:
-            return "PUT"
-        case .deleteShoppingItem:
-            return "DELETE"
-        }
-    }
+    case createShoppingItem(data: Data)
+    case updateShoppingItem(id: String, data: Data)
+    case deleteShoppingItem(id: String)
 
     var request: URLRequest {
-        let url = URL(string: Self.apiBaseURL)!.appendingPathComponent(path)
-        var request = URLRequest(url: url)
-        request.httpMethod = method
+        let baseUrl = APIBaseURL.wiremock
+        var request: URLRequest
 
-        if method == "POST" || method == "PUT" {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        switch self {
+        case .getShoppingItems:
+            let url = APIPath.shoppingItems.url(forBase: baseUrl)
+            request = URLRequest(url: url)
+            request.httpMethod = "GET"
+
+        case .createShoppingItem(let data):
+            let url = APIPath.shoppingItems.url(forBase: baseUrl)
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = data
+
+        case .updateShoppingItem(let id, let data):
+            let url = APIPath.shoppingItems.url(withID: id, forBase: baseUrl)
+            request = URLRequest(url: url)
+            request.httpMethod = "PUT"
+            request.httpBody = data
+
+        case .deleteShoppingItem(let id):
+            let url = APIPath.shoppingItems.url(withID: id, forBase: baseUrl)
+            request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
         }
 
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         return request
     }
 }
