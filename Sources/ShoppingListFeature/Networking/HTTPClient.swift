@@ -1,11 +1,8 @@
 import Foundation
 
 final class HTTPClient {
-    private let baseURL: URL
-
-    init(baseURL: URL) {
-        self.baseURL = baseURL
-    }
+    static let shared = HTTPClient()
+    private init() {}
 
     func performRequest<T: Codable>(endpoint: String, method: String, body: T? = nil) async throws -> T {
         var request = URLRequest(url: baseURL.appendingPathComponent(endpoint))
