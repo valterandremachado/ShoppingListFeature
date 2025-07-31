@@ -15,12 +15,14 @@ final class ShoppingListViewModel: ObservableObject {
     // MARK: - Initialization
     init(
         serverService: ShoppingListServerService = ShoppingListServerService(),
-        localService: ShoppingListLocalService = ShoppingListLocalService(),
-        syncService: SyncService = SyncService()
+        localService: ShoppingListLocalService = ShoppingListLocalService()
     ) {
         self.serverService = serverService
         self.localService = localService
-        self.syncService = syncService  
+        self.syncService = SyncService(
+            localService: localService,
+            serverService: serverService
+        )
 
         // Startup background sync
         syncService.startBackgroundSync()
@@ -48,7 +50,7 @@ final class ShoppingListViewModel: ObservableObject {
             do {
                 let serverItems = try await serverService.fetchAllItems()
                 // Update local service with server items
-                try localService.updateItemsFromServer(serverItems)
+                try localService.saveItemsFromServer(serverItems)
                 // Refresh items from local service
                 items = localService.getAllItems()
             } catch {

@@ -21,7 +21,12 @@ final class SyncService {
     func startBackgroundSync() {
         localService.changesPublisher
             .debounce(for: .seconds(2), scheduler: DispatchQueue.main)
-            .sink { [weak self] in self?.syncChanges() }
+            .sink { [weak self] in
+                guard let self = self else { return }
+                Task {
+                    await self.syncLastWriteWins()
+                }
+            }
             .store(in: &cancellables)
     }
 

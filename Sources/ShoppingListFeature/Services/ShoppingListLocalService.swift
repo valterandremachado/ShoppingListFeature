@@ -2,18 +2,22 @@ import Foundation
 import RealmSwift
 import Combine
 
-final class ShoppingListLocalService {
+public class ShoppingListLocalService {
     private let realm: Realm
     private var cancellables = Set<AnyCancellable>()
     let changesPublisher = PassthroughSubject<Void, Never>()
 
     // Initialize Realm
-    init() throws {
-        realm = try Realm()
+    public init() {
+        do {
+            realm = try Realm()
+        } catch {
+            fatalError("Failed to initialize local db: \(error)")
+        }
     }
 
     // MARK: READ
-    func getAllItems(includeSoftDeleted: Bool) -> [ShoppingItemLocalModel] {
+    func getAllItems(includeSoftDeleted: Bool = false) -> [ShoppingItemLocalModel] {
         let items = realm.objects(ShoppingItemLocalModel.self)
         return includeSoftDeleted ? Array(items) : Array(items.filter("isDeletedLocally == false"))
     }
@@ -74,7 +78,7 @@ final class ShoppingListLocalService {
 
     // Save items from server
     func saveItemsFromServer(_ items: [ShoppingItemServerModel]) throws {
-        let items = serverItems.map { serverItem in
+        let items = items.map { serverItem in
             let localItem = ShoppingItemLocalModel()
             localItem.id = serverItem.id
             localItem.name = serverItem.name
@@ -82,7 +86,7 @@ final class ShoppingListLocalService {
             localItem.note = serverItem.note
             localItem.isPurchased = serverItem.isPurchased
             localItem.createdAt = serverItem.createdAt.toDate() ?? Date()
-            localItem.updatedAt = serverItem.updatedAt?.toDate() ?? Date()
+            localItem.updatedAt = serverItem.updatedAt.toDate() ?? Date()
             return localItem
         }
         // Write to Realm
@@ -91,6 +95,33 @@ final class ShoppingListLocalService {
         }
     }
 
+    // Toggle purchased status
+    func togglePurchased(for id: String) throws {
+        if let object = realm.object(ofType: ShoppingItemLocalModel.self, forPrimaryKey: id)?.thaw() {
+            try realm.write {
+                object.needsSync = true
+                object.updatedAt = Date()
+                object.isPurchased.toggle()
+            }
+            notifyChanges()
+        }
+    }
+    
+    // Get all items needing sync (including soft-deleted)
+    func getItemsNeedingSync() -> [ShoppingItemLocalModel] {
+        Array(realm.objects(ShoppingItemLocalModel.self).filter("needsSync == true"))
+    }
+    
+    // Clear flags or hard-delete after successful sync
+    func markItemSynced(_ item: ShoppingItemLocalModel) {
+        try? realm.write {
+            item.needsSync = false
+            if item.isDeletedLocally {
+                realm.delete(item)
+            }
+        }
+    }
+    
     // Local Changes Publisher
     private func notifyChanges() {
         changesPublisher.send(())

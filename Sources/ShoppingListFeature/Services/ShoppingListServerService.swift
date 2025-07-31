@@ -1,12 +1,12 @@
 import Foundation
 
 @MainActor
-final class ShoppingListServerService {
+public class ShoppingListServerService {
     // MARK: - Properties
     private let apiClient = HTTPClient.shared
 
     // MARK: - Initialization
-    init() { }
+    public init() { }
 
     // MARK: Methods
 

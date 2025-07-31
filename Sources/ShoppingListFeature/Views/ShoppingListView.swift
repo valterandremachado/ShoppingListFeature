@@ -2,54 +2,54 @@ import SwiftUI
 import RealmSwift
 
 public struct ShoppingListView: View {
-    // MARK: Enums 
+    // MARK: Enums
     private enum SortOption {
         case createdAsc, createdDesc, modAsc, modDesc
     }
-
+    
     private enum FilterOption {
         case purchased, notPurchased
     }
-
+    
     // MARK: - Properties
-
+    
     // ViewModel
     @StateObject private var viewModel: ShoppingListViewModel
-
+    
     // SearchBar Text
     @State private var searchText: String = ""
-
+    
     // Sort and Filter
     @State private var showFilterSheet = false
     @State private var sortOption: SortOption = .createdAsc
     @State private var filterOption: FilterOption = .notPurchased
-
+    
     // Add Item Alert
     @State private var showingAddAlert = false
     @State private var newName: String = ""
     @State private var newQuantity: String = ""
     @State private var newNote: String = ""
-
+    
     // Edit Item Alert
     @State private var showingEditAlert = false
     @State private var selectedItem: ShoppingItemLocalModel?
     @State private var editName: String = ""
     @State private var editQuantity: String = ""
     @State private var editNote: String = ""
-
+    
     // Validation Alert
     @State private var showValidationAlert = false
     @State private var validationAlertMessage = ""
-
+    
     // MARK: Computed Properties
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-
+    
     private var allFilteredItems: [ShoppingItemLocalModel] {
         viewModel.filteredItems(searchText: searchText)
     }
-
+    
     private var filteredItems: [ShoppingItemLocalModel] {
         switch filterOption {
         case .purchased:
@@ -58,7 +58,7 @@ public struct ShoppingListView: View {
             return allFilteredItems.filter { !$0.isPurchased }
         }
     }
-
+    
     private var filteredAndSortedItems: [ShoppingItemLocalModel] {
         var items = filteredItems
         switch sortOption {
@@ -73,24 +73,22 @@ public struct ShoppingListView: View {
         }
         return items
     }
-
+    
     // MARK: Initialization
     public init(
-        localService: ShoppingListLocalService = ShoppingListLocalService(),
-        serverService: ShoppingListServerService = ShoppingListServerService()
+        localService: ShoppingListLocalService,
+        serverService: ShoppingListServerService
     ) {
-        let syncService = SyncService(localService: localService, serverService: serverService)
         _viewModel = StateObject(
             wrappedValue: ShoppingListViewModel(
-                localService: localService,
                 serverService: serverService,
-                syncService: syncService
+                localService: localService
             )
         )
     }
-
+    
     // MARK: View Body
- public var body: some View {
+    public var body: some View {
         NavigationView {
             List {
                 itemSection
@@ -126,7 +124,8 @@ public struct ShoppingListView: View {
             .modifier(ValidationAlertModifier(isPresented: $showValidationAlert, message: validationAlertMessage))
         }
     }
-
+    
+    @ViewBuilder
     private var itemSection: some View {
         Section {
             if filteredAndSortedItems.isEmpty {
@@ -150,12 +149,14 @@ public struct ShoppingListView: View {
                 .onDelete { indexSet in
                     for index in indexSet {
                         let item = filteredAndSortedItems[index]
-                        try? viewModel.deleteItem(id: item.id)
+                        try? viewModel.deleteItem(item)
                     }
                 }
             }
         } header: {
             sectionHeader
+        } footer: {
+            EmptyView()
         }
     }
 
@@ -173,7 +174,7 @@ public struct ShoppingListView: View {
             }
         }
     }
-
+    
     private var sectionHeader: some View {
         HStack {
             Text("My Items")
@@ -195,7 +196,7 @@ public struct ShoppingListView: View {
                         Label("Updated: Newest First", systemImage: sortOption == .modDesc ? "checkmark" : "")
                     }
                 }
-
+                
                 // Filter Menu Group
                 Menu("Filter By") {
                     Button(action: { filterOption = .purchased }) {
@@ -214,31 +215,31 @@ public struct ShoppingListView: View {
         .padding(.bottom, 4)
         .padding(.top, -10)
     }
-
+    
     private var addItemAlertContent: some View {
         Group {
             TextField("Name", text: $newName)
             TextField("Quantity", text: $newQuantity)
                 .keyboardType(.numberPad)
             TextField("Note (Optional)", text: $newNote)
-
+            
             Button("Add", action: handleAdd)
             Button("Cancel", role: .cancel, action: resetInputs)
         }
     }
-
+    
     private var editItemAlertContent: some View {
         Group {
-                TextField("Name", text: $editName)
-                TextField("Quantity", text: $editQuantity)
-                    .keyboardType(.numberPad)
-                TextField("Note (Optional)", text: $editNote)
-                
-                Button("Save", action: handleEdit)
-                Button("Cancel", role: .cancel, action: resetEditInputs)
+            TextField("Name", text: $editName)
+            TextField("Quantity", text: $editQuantity)
+                .keyboardType(.numberPad)
+            TextField("Note (Optional)", text: $editNote)
+            
+            Button("Save", action: handleEdit)
+            Button("Cancel", role: .cancel, action: resetEditInputs)
         }
     }
-
+    
     private func handleAdd() {
         let trimmedName = newName.trimmingCharacters(in: .whitespaces)
         let trimmedQuantity = newQuantity.trimmingCharacters(in: .whitespaces)
@@ -268,10 +269,10 @@ public struct ShoppingListView: View {
         }
         let itemNote = !editNote.isEmpty ? editNote : item.note
         viewModel.updateItem(
-            id: item.id,
-            name: trimmedName,
-            quantity: quantityValue,
-            note: itemNote
+            item,
+            newName: trimmedName,
+            newQuantity: quantityValue,
+            newNote: itemNote
         )
         resetEditInputs()
     }
@@ -280,13 +281,13 @@ public struct ShoppingListView: View {
         validationAlertMessage = message
         showValidationAlert = true
     }
-
+    
     private func resetInputs() {
         newName = ""
         newQuantity = ""
         newNote = ""
     }
-
+    
     private func resetEditInputs() {
         selectedItem = nil
         editName = ""
